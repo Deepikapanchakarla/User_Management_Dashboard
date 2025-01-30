@@ -32,13 +32,25 @@ const UserManagement = () => {
 
   // Form validation
   const validateForm = () => {
-    if (!newUser.firstName.trim()) return setError("First name is required"), false;
-    if (!newUser.lastName.trim()) return setError("Last name is required"), false;
-    if (!newUser.email.trim() || !/^\S+@\S+\.\S+$/.test(newUser.email)) return setError("A valid email is required"), false;
-    if (!newUser.department.trim()) return setError("Department is required"), false;
+    if (!newUser.firstName.trim()) {
+      setError("First name is required");
+      return false;
+    }
+    if (!newUser.lastName.trim()) {
+      setError("Last name is required");
+      return false;
+    }
+    if (!newUser.email.trim() || !/^\S+@\S+\.\S+$/.test(newUser.email)) {
+      setError("A valid email is required");
+      return false;
+    }
+    if (!newUser.department.trim()) {
+      setError("Department is required");
+      return false;
+    }
     setError(null);
     return true;
-  };
+  };  
 
   // Add a new user (POST request)
   const addUser = async () => {
