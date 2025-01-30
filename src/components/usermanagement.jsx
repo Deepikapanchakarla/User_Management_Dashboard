@@ -2,20 +2,15 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 const UserManagement = () => {
-  // State to store users data
   const [users, setUsers] = useState([]);
-  // State to store error message
   const [error, setError] = useState(null);
-  // State to store form data for new or editing user
   const [newUser, setNewUser] = useState({ firstName: "", lastName: "", email: "", department: "" });
-  // State to track the user being edited
   const [editingUser, setEditingUser] = useState(null);
-  // State for pagination (current page number)
   const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 5; // Number of users per page for pagination
+  const usersPerPage = 5;
 
   useEffect(() => {
-    fetchUsers(); // Fetch users when the component is mounted
+    fetchUsers();
   }, []);
 
   // Fetch users from JSONPlaceholder API
@@ -29,124 +24,79 @@ const UserManagement = () => {
         email: user.email,
         department: user.company?.name || "N/A",
       }));
-      setUsers(formattedUsers); // Update state with formatted user data
+      setUsers(formattedUsers);
     } catch (error) {
-      setError("Failed to fetch users"); // Handle error if API request fails
+      setError("Failed to fetch users");
     }
   };
 
-  // Form validation before adding or updating a user
+  // Form validation
   const validateForm = () => {
-    if (!newUser.firstName.trim()) {
-      setError("First name is required");
-      return false;
-    }
-    if (!newUser.lastName.trim()) {
-      setError("Last name is required");
-      return false;
-    }
-    if (!newUser.email.trim() || !/^\S+@\S+\.\S+$/.test(newUser.email)) {
-      setError("A valid email is required");
-      return false;
-    }
-    if (!newUser.department.trim()) {
-      setError("Department is required");
-      return false;
-    }
-    setError(null); // Reset error if validation passes
+    if (!newUser.firstName.trim()) return setError("First name is required"), false;
+    if (!newUser.lastName.trim()) return setError("Last name is required"), false;
+    if (!newUser.email.trim() || !/^\S+@\S+\.\S+$/.test(newUser.email)) return setError("A valid email is required"), false;
+    if (!newUser.department.trim()) return setError("Department is required"), false;
+    setError(null);
     return true;
   };
 
-  // Add a new user
-  const addUser = () => {
-    if (!validateForm()) return; // Check form validity before proceeding
-    const newUserWithId = {
-      ...newUser,
-      id: users.length ? users[users.length - 1].id + 1 : 1, // Generate a unique ID for the new user
-    };
-    setUsers([...users, newUserWithId]); // Update users list with the new user
-    setNewUser({ firstName: "", lastName: "", email: "", department: "" }); // Reset form fields
+  // Add a new user (POST request)
+  const addUser = async () => {
+    if (!validateForm()) return;
+    try {
+      const response = await axios.post("https://jsonplaceholder.typicode.com/users", newUser);//sending request to backend to add new user
+      const newUserWithId = { ...newUser, id: response.data.id || users.length + 1 };
+      setUsers([...users, newUserWithId]);
+      setNewUser({ firstName: "", lastName: "", email: "", department: "" });
+    } catch (error) {
+      setError("Failed to add user");
+    }
   };
 
-  // Edit an existing user
+  // Edit user
   const editUser = (user) => {
-    setEditingUser(user); // Set the user being edited
-    setNewUser({
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      department: user.department,
-    });
+    setEditingUser(user);
+    setNewUser({ firstName: user.firstName, lastName: user.lastName, email: user.email, department: user.department });
   };
 
-  // Update user details
-  const updateUser = () => {
-    if (!validateForm()) return; // Check form validity before updating
-    setUsers(
-      users.map((user) =>
-        user.id === editingUser.id
-          ? {
-              ...user,
-              firstName: newUser.firstName,
-              lastName: newUser.lastName,
-              email: newUser.email,
-              department: newUser.department,
-            }
-          : user
-      )
-    );
-    setEditingUser(null); // Reset editing state
-    setNewUser({ firstName: "", lastName: "", email: "", department: "" }); // Reset form fields
+  // Update user (PUT request)
+  const updateUser = async () => {
+    if (!validateForm()) return;
+    try {
+      await axios.put(`https://jsonplaceholder.typicode.com/users/${editingUser.id}`, newUser);//sending request to backend to edit
+      setUsers(users.map((user) => (user.id === editingUser.id ? { ...user, ...newUser } : user)));
+      setEditingUser(null);
+      setNewUser({ firstName: "", lastName: "", email: "", department: "" });
+    } catch (error) {
+      setError("Failed to update user");
+    }
   };
 
-  // Delete a user
-  const deleteUser = (id) => {
-    setUsers(users.filter((user) => user.id !== id)); // Filter out the deleted user from the list
+  // Delete user (DELETE request)
+  const deleteUser = async (id) => {
+    try {
+      await axios.delete(`https://jsonplaceholder.typicode.com/users/${id}`);//sending request to backend to delete
+      setUsers(users.filter((user) => user.id !== id));
+    } catch (error) {
+      setError("Failed to delete user");
+    }
   };
 
-  // Handle pagination (set the current page)
+  // Handle pagination
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
-  // Slice the users array based on the current page
-  const currentUsers = users.slice(
-    (currentPage - 1) * usersPerPage,
-    currentPage * usersPerPage
-  );
+  const currentUsers = users.slice((currentPage - 1) * usersPerPage, currentPage * usersPerPage);
 
   return (
     <div className="container">
-      <h1 className="title">User Management</h1>
-      {error && <p className="error">{error}</p>} {/* Display error message if any */}
+      <h1>User Management</h1>
+      {error && <p className="error">{error}</p>}
 
       <div className="form-container">
-        <input
-          type="text"
-          placeholder="First Name"
-          value={newUser.firstName}
-          onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
-        />
-        <input
-          type="text"
-          placeholder="Last Name"
-          value={newUser.lastName}
-          onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={newUser.email}
-          onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-        />
-        <input
-          type="text"
-          placeholder="Department"
-          value={newUser.department}
-          onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
-        />
-        {editingUser ? (
-          <button onClick={updateUser}>Update User</button> // Update user button
-        ) : (
-          <button onClick={addUser}>Add User</button> // Add new user button
-        )}
+        <input type="text" placeholder="First Name" value={newUser.firstName} onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })} />
+        <input type="text" placeholder="Last Name" value={newUser.lastName} onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })} />
+        <input type="email" placeholder="Email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} />
+        <input type="text" placeholder="Department" value={newUser.department} onChange={(e) => setNewUser({ ...newUser, department: e.target.value })} />
+        {editingUser ? <button onClick={updateUser}>Update User</button> : <button onClick={addUser}>Add User</button>}
       </div>
 
       <table className="user-table">
@@ -179,11 +129,7 @@ const UserManagement = () => {
 
       <div className="pagination">
         {[...Array(Math.ceil(users.length / usersPerPage))].map((_, index) => (
-          <button
-            key={index}
-            onClick={() => paginate(index + 1)} // Navigate to page number
-            className={currentPage === index + 1 ? "active" : ""} // Highlight active page
-          >
+          <button key={index} onClick={() => paginate(index + 1)} className={currentPage === index + 1 ? "active" : ""}>
             {index + 1}
           </button>
         ))}
